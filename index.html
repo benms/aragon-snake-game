@@ -1,0 +1,2010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlitherGrid — HTML5 Snake Arena</title>
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-panel: #131b2e;
+      --bg-panel-alt: #1b253d;
+      --border: #2a3759;
+      --text-main: #f0f4ff;
+      --text-muted: #93a4c8;
+      --accent-green: #10b981;
+      --accent-green-glow: rgba(16, 185, 129, 0.35);
+      --accent-cyan: #06b6d4;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-purple: #8b5cf6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #151f38 0%, var(--bg-primary) 75%);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      gap: 14px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 1220px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 18px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan));
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 18px;
+      color: #06131f;
+      box-shadow: 0 0 14px var(--accent-green-glow);
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      letter-spacing: 0.4px;
+      font-weight: 700;
+    }
+
+    .brand p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .telemetry-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .stat-pill {
+      background: var(--bg-panel-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      display: flex;
+      flex-direction: column;
+      min-width: 84px;
+    }
+
+    .stat-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+    }
+
+    .stat-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mode-badge {
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    .mode-badge.manual {
+      background: rgba(16, 185, 129, 0.16);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.45);
+    }
+
+    .mode-badge.auto {
+      background: rgba(6, 182, 212, 0.18);
+      color: #22d3ee;
+      border-color: rgba(6, 182, 212, 0.5);
+      box-shadow: 0 0 14px rgba(6, 182, 212, 0.25);
+    }
+
+    .workspace {
+      width: 100%;
+      max-width: 1220px;
+      display: grid;
+      grid-template-columns: 1fr 310px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .canvas-container {
+      position: relative;
+      background: #080c14;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-width: 880px;
+      aspect-ratio: 4 / 3;
+      cursor: crosshair;
+    }
+
+    .canvas-overlay-banner {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      font-size: 0.78rem;
+      color: rgba(240, 244, 255, 0.8);
+    }
+
+    .start-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(7, 11, 19, 0.76);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 14px;
+      z-index: 20;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .start-overlay { pointer-events: none; }
+    .start-overlay button { pointer-events: auto; }
+
+    .start-overlay.hidden {
+      display: none;
+    }
+
+    .start-overlay h2 {
+      font-size: 1.75rem;
+      letter-spacing: 0.5px;
+    }
+
+    .start-overlay p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      max-width: 440px;
+      line-height: 1.45;
+    }
+
+    .start-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .start-actions button {
+      padding: 10px 18px;
+      font-size: 0.92rem;
+    }
+
+    .banner-tag {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      padding: 4px 10px;
+      border-radius: 6px;
+      backdrop-filter: blur(4px);
+    }
+
+    .toast-feed {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .toast-item {
+      background: rgba(15, 23, 42, 0.88);
+      border-left: 3px solid var(--accent-cyan);
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 0.76rem;
+      color: var(--text-main);
+      animation: fadeToast 2.4s forwards;
+    }
+
+    @keyframes fadeToast {
+      0% { opacity: 0; transform: translateY(6px); }
+      12% { opacity: 1; transform: translateY(0); }
+      80% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-title {
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-muted);
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      background: var(--bg-panel-alt);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      transition: background 0.14s, border-color 0.14s, transform 0.08s;
+    }
+
+    button:hover {
+      background: #253354;
+      border-color: #3f5382;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button.primary {
+      background: rgba(16, 185, 129, 0.18);
+      border-color: rgba(16, 185, 129, 0.5);
+      color: #6ee7b7;
+    }
+
+    button.primary:hover {
+      background: rgba(16, 185, 129, 0.28);
+    }
+
+    button.accent {
+      background: rgba(6, 182, 212, 0.18);
+      border-color: rgba(6, 182, 212, 0.45);
+      color: #67e8f9;
+    }
+
+    button.warn {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
+    .kbd {
+      background: #0b101d;
+      border: 1px solid #2e3d63;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.72rem;
+      color: #cbd5e1;
+    }
+
+    .shortcut-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.8rem;
+    }
+
+    .shortcut-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 0;
+      border-bottom: 1px dashed rgba(42, 55, 89, 0.5);
+    }
+
+    .shortcut-row:last-child {
+      border-bottom: none;
+    }
+
+    .live-roster {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      max-height: 155px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+    }
+
+    .roster-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 8px;
+      border-radius: 6px;
+      background: var(--bg-panel-alt);
+    }
+
+    .roster-name {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 600;
+    }
+
+    .swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 10, 19, 0.82);
+      backdrop-filter: blur(5px);
+      display: none;
+      place-items: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open {
+      display: grid;
+    }
+
+    .modal {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 650px;
+      padding: 22px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    .modal-header h2 {
+      font-size: 1.35rem;
+    }
+
+    .save-score-bar {
+      display: flex;
+      gap: 8px;
+      background: var(--bg-panel-alt);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      align-items: center;
+    }
+
+    .save-score-bar input {
+      flex: 1;
+      background: #0b0f19;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      user-select: text;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 7px 8px;
+      border-bottom: 1px solid rgba(42, 55, 89, 0.55);
+    }
+
+    th {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .section-subtitle {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-logo">S</div>
+      <div>
+        <h1>SlitherGrid Arena</h1>
+        <p>Manual &amp; Autonomous AI Snake with Live Obstacles &amp; Enemy Snakes</p>
+      </div>
+    </div>
+
+    <div class="telemetry-bar">
+      <div id="modeBadge" class="mode-badge manual" title="Click or press M to toggle Manual or Autonomous AI mode">
+        Mode: Manual
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Score</span>
+        <span class="stat-value" id="statScore">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Length</span>
+        <span class="stat-value" id="statLength">4</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Enemies</span>
+        <span class="stat-value" id="statEnemies">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Obstacles</span>
+        <span class="stat-value" id="statObstacles">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Speed</span>
+        <span class="stat-value" id="statSpeed">1.0x</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <div class="canvas-container">
+      <canvas id="gameCanvas" width="880" height="660"></canvas>
+      <div class="canvas-overlay-banner">
+        <div class="banner-tag" id="statusBanner">Click or drag on grid to place/remove obstacles</div>
+        <div class="banner-tag" id="aiStateBanner">Driver: Human Input</div>
+      </div>
+      <div class="start-overlay" id="startOverlay">
+        <h2>Ready to Slither?</h2>
+        <p>Customize obstacles or enemy snakes before starting, or jump right in using Manual steering or Autonomous AI mode.</p>
+        <div class="start-actions">
+          <button id="btnStartManual" class="primary">
+            <span>Start Game</span>
+            <span class="kbd">Space / Enter</span>
+          </button>
+          <button id="btnStartAuto" class="accent">
+            <span>Start Auto-Pilot</span>
+            <span class="kbd">A</span>
+          </button>
+        </div>
+      </div>
+      <div class="toast-feed" id="toastFeed"></div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="card">
+        <div class="card-title">
+          <span>Live Arena Controls</span>
+        </div>
+        <div class="btn-grid">
+          <button id="btnToggleMode" class="accent">
+            <span>Auto-Pilot</span>
+            <span class="kbd">M</span>
+          </button>
+          <button id="btnAddEnemy" class="primary">
+            <span>+ Enemy Snake</span>
+            <span class="kbd">E</span>
+          </button>
+          <button id="btnAddObstacle">
+            <span>+ Obstacles</span>
+            <span class="kbd">O</span>
+          </button>
+          <button id="btnClearObstacles" class="warn">
+            <span>Clear Walls</span>
+            <span class="kbd">X</span>
+          </button>
+          <button id="btnPause">
+            <span id="pauseBtnText">Pause</span>
+            <span class="kbd">P</span>
+          </button>
+          <button id="btnRestart">
+            <span>Restart</span>
+            <span class="kbd">R</span>
+          </button>
+          <button id="btnSlower">
+            <span>Speed -</span>
+            <span class="kbd">[</span>
+          </button>
+          <button id="btnFaster">
+            <span>Speed +</span>
+            <span class="kbd">]</span>
+          </button>
+        </div>
+        <button id="btnLeaderboard" style="width: 100%; justify-content: center; gap: 10px;">
+          <span>View Leaderboard &amp; Standings</span>
+          <span class="kbd">L</span>
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>Active Snakes</span>
+          <span id="killCountBadge" style="color: var(--accent-amber);">Kills: 0</span>
+        </div>
+        <div class="live-roster" id="liveRoster"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>Keyboard Shortcuts</span>
+        </div>
+        <div class="shortcut-list">
+          <div class="shortcut-row">
+            <span>Steer Snake (Manual)</span>
+            <span><span class="kbd">WASD</span> / <span class="kbd">Arrows</span></span>
+          </div>
+          <div class="shortcut-row">
+            <span>Toggle Manual / Auto AI</span>
+            <span class="kbd">M</span>
+          </div>
+          <div class="shortcut-row">
+            <span>Spawn Enemy Snake</span>
+            <span class="kbd">E</span>
+          </div>
+          <div class="shortcut-row">
+            <span>Remove 1 Enemy Snake</span>
+            <span class="kbd">Q</span>
+          </div>
+          <div class="shortcut-row">
+            <span>Spawn Random Obstacles</span>
+            <span class="kbd">O</span>
+          </div>
+          <div class="shortcut-row">
+            <span>Clear All Obstacles</span>
+            <span class="kbd">X</span>
+          </div>
+          <div class="shortcut-row">
+            <span>Click / Drag on Grid</span>
+            <span class="kbd">Mouse</span>
+          </div>
+          <div class="shortcut-row">
+            <span>Pause / Resume</span>
+            <span><span class="kbd">Space</span> / <span class="kbd">P</span></span>
+          </div>
+          <div class="shortcut-row">
+            <span>Adjust Game Speed</span>
+            <span><span class="kbd">[</span> / <span class="kbd">]</span></span>
+          </div>
+          <div class="shortcut-row">
+            <span>Restart Match</span>
+            <span class="kbd">R</span>
+          </div>
+          <div class="shortcut-row">
+            <span>Toggle Leaderboard</span>
+            <span class="kbd">L</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- End of Game & Leaderboard Modal -->
+  <div class="modal-backdrop" id="leaderboardModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h2 id="modalTitle">Game Over</h2>
+          <p id="modalSubtitle" style="font-size: 0.84rem; color: var(--text-muted); margin-top: 2px;">
+            Match finished
+          </p>
+        </div>
+        <button id="btnCloseModal"><span class="kbd">ESC</span></button>
+      </div>
+
+      <div class="save-score-bar" id="saveScoreSection">
+        <input type="text" id="playerNameInput" maxlength="18" placeholder="Enter your name for leaderboard..." value="Player 1" />
+        <button id="btnSaveScore" class="primary">Save High Score</button>
+      </div>
+
+      <div>
+        <div class="section-subtitle">Match Standings (Current Arena)</div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Snake</th>
+              <th>Role</th>
+              <th>Peak Length</th>
+              <th>Score / Kills</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="matchStandingsBody"></tbody>
+        </table>
+      </div>
+
+      <div>
+        <div class="section-subtitle">All-Time High Scores (Persistent Leaderboard)</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Pilot</th>
+              <th>Score</th>
+              <th>Length</th>
+              <th>Kills</th>
+              <th>Mode</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="highScoresBody"></tbody>
+        </table>
+      </div>
+
+      <div class="modal-actions">
+        <button id="btnClearStorage" class="warn">Reset Saved Scores</button>
+        <div style="display: flex; gap: 8px;">
+          <button id="btnPlayAgain" class="primary">Play Again <span class="kbd">R</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      // Grid & Canvas constants
+      const COLS = 40;
+      const ROWS = 30;
+      const CELL = 22; // 40 * 22 = 880, 30 * 22 = 660
+      const STORAGE_KEY = 'slither_grid_leaderboard_v1';
+
+      const DIRS = {
+        UP:    { x: 0, y: -1, name: 'UP' },
+        DOWN:  { x: 0, y: 1,  name: 'DOWN' },
+        LEFT:  { x: -1, y: 0, name: 'LEFT' },
+        RIGHT: { x: 1, y: 0,  name: 'RIGHT' }
+      };
+      const DIR_LIST = [DIRS.UP, DIRS.DOWN, DIRS.LEFT, DIRS.RIGHT];
+
+      const ENEMY_PALETTES = [
+        { name: 'Viper-Red',    head: '#f87171', body: '#dc2626', glow: 'rgba(239,68,68,0.4)' },
+        { name: 'Cobra-Amber',  head: '#fbbf24', body: '#d97706', glow: 'rgba(245,158,11,0.4)' },
+        { name: 'Mamba-Violet', head: '#c084fc', body: '#7c3aed', glow: 'rgba(139,92,246,0.4)' },
+        { name: 'Python-Pink',  head: '#f472b6', body: '#db2777', glow: 'rgba(236,72,153,0.4)' },
+        { name: 'Taipan-Blue',  head: '#60a5fa', body: '#2563eb', glow: 'rgba(59,130,246,0.4)' },
+        { name: 'Krait-Lime',   head: '#a3e635', body: '#65a30d', glow: 'rgba(132,204,22,0.4)' }
+      ];
+
+      // DOM elements
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const modeBadge = document.getElementById('modeBadge');
+      const statScore = document.getElementById('statScore');
+      const statLength = document.getElementById('statLength');
+      const statEnemies = document.getElementById('statEnemies');
+      const statObstacles = document.getElementById('statObstacles');
+      const statSpeed = document.getElementById('statSpeed');
+      const statusBanner = document.getElementById('statusBanner');
+      const aiStateBanner = document.getElementById('aiStateBanner');
+      const toastFeed = document.getElementById('toastFeed');
+      const liveRoster = document.getElementById('liveRoster');
+      const killCountBadge = document.getElementById('killCountBadge');
+      const pauseBtnText = document.getElementById('pauseBtnText');
+      const startOverlay = document.getElementById('startOverlay');
+      const btnStartManual = document.getElementById('btnStartManual');
+      const btnStartAuto = document.getElementById('btnStartAuto');
+
+      const leaderboardModal = document.getElementById('leaderboardModal');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalSubtitle = document.getElementById('modalSubtitle');
+      const saveScoreSection = document.getElementById('saveScoreSection');
+      const playerNameInput = document.getElementById('playerNameInput');
+      const btnSaveScore = document.getElementById('btnSaveScore');
+      const matchStandingsBody = document.getElementById('matchStandingsBody');
+      const highScoresBody = document.getElementById('highScoresBody');
+
+      // Game State
+      let state = {
+        running: false,
+        waitingToStart: true,
+        paused: false,
+        gameOver: false,
+        autonomous: false,
+        usedAutonomous: false,
+        usedManual: false,
+        score: 0,
+        kills: 0,
+        tickCount: 0,
+        speedMultiplier: 1.0,
+        baseTickMs: 105,
+        obstacles: new Set(), // "x,y"
+        foods: [], // [{x, y, value, color, bonus}]
+        player: null,
+        enemies: [],
+        allMatchSnakes: [], // tracks both living and dead snakes for match standings
+        enemyCounter: 0,
+        scoreSavedThisMatch: false,
+        aiPlannedPath: [] // visualization for autonomous mode path
+      };
+
+      function esc(v) {
+        return String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      }
+
+      function keyOf(x, y) {
+        return `${x},${y}`;
+      }
+
+      function parseKey(k) {
+        const [x, y] = k.split(',').map(Number);
+        return { x, y };
+      }
+
+      function isOpposite(d1, d2) {
+        return d1 && d2 && d1.x === -d2.x && d1.y === -d2.y;
+      }
+
+      function inBounds(x, y) {
+        return x >= 0 && x < COLS && y >= 0 && y < ROWS;
+      }
+
+      function showToast(msg, color = '#06b6d4') {
+        const el = document.createElement('div');
+        el.className = 'toast-item';
+        el.style.borderLeftColor = color;
+        el.textContent = msg;
+        toastFeed.appendChild(el);
+        setTimeout(() => {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }, 2400);
+      }
+
+      function createSnake({ id, name, isPlayer, x, y, dir, length, palette }) {
+        const segments = [];
+        for (let i = 0; i < length; i++) {
+          segments.push({
+            x: Math.max(0, Math.min(COLS - 1, x - dir.x * i)),
+            y: Math.max(0, Math.min(ROWS - 1, y - dir.y * i))
+          });
+        }
+        return {
+          id,
+          name,
+          isPlayer,
+          segments,
+          dir,
+          inputQueue: [],
+          growPending: 0,
+          alive: true,
+          score: 0,
+          kills: 0,
+          peakLength: length,
+          palette,
+          causeOfDeath: ''
+        };
+      }
+
+      function getOccupiedSet(excludeTail = false) {
+        const occupied = new Set(state.obstacles);
+        const allSnakes = [state.player, ...state.enemies].filter(Boolean);
+        for (const s of allSnakes) {
+          if (!s.alive) continue;
+          const limit = (excludeTail && s.growPending === 0) ? s.segments.length - 1 : s.segments.length;
+          for (let i = 0; i < limit; i++) {
+            occupied.add(keyOf(s.segments[i].x, s.segments[i].y));
+          }
+        }
+        return occupied;
+      }
+
+      function spawnFood(count = 1, customFood = null) {
+        if (customFood) {
+          state.foods.push(customFood);
+          return;
+        }
+        const occupied = getOccupiedSet(false);
+        for (const f of state.foods) {
+          occupied.add(keyOf(f.x, f.y));
+        }
+
+        for (let c = 0; c < count; c++) {
+          let attempts = 0;
+          while (attempts < 300) {
+            attempts++;
+            const x = Math.floor(Math.random() * COLS);
+            const y = Math.floor(Math.random() * ROWS);
+            const k = keyOf(x, y);
+            if (!occupied.has(k)) {
+              occupied.add(k);
+              const isGolden = Math.random() < 0.14;
+              state.foods.push({
+                x,
+                y,
+                value: isGolden ? 25 : 10,
+                grow: isGolden ? 2 : 1,
+                color: isGolden ? '#facc15' : '#10b981',
+                bonus: isGolden
+              });
+              break;
+            }
+          }
+        }
+      }
+
+      function spawnEnemySnake() {
+        const occupied = getOccupiedSet(false);
+        const palette = ENEMY_PALETTES[state.enemyCounter % ENEMY_PALETTES.length];
+        state.enemyCounter++;
+        const botName = `${palette.name.split('-')[0]} #${state.enemyCounter}`;
+
+        // Find a safe spawn point with at least 4 clear cells
+        let bestSpot = null;
+        for (let attempt = 0; attempt < 250; attempt++) {
+          const x = 3 + Math.floor(Math.random() * (COLS - 6));
+          const y = 3 + Math.floor(Math.random() * (ROWS - 6));
+          const dir = DIR_LIST[Math.floor(Math.random() * DIR_LIST.length)];
+
+          // Avoid spawning right in front of player head
+          if (state.player && state.player.alive) {
+            const ph = state.player.segments[0];
+            const dist = Math.abs(ph.x - x) + Math.abs(ph.y - y);
+            if (dist < 6) continue;
+          }
+
+          let clear = true;
+          for (let s = -1; s <= 3; s++) {
+            const cx = x - dir.x * s;
+            const cy = y - dir.y * s;
+            if (!inBounds(cx, cy) || occupied.has(keyOf(cx, cy))) {
+              clear = false;
+              break;
+            }
+          }
+          if (clear) {
+            bestSpot = { x, y, dir };
+            break;
+          }
+        }
+
+        if (!bestSpot) {
+          showToast('No safe space to spawn enemy snake!', '#ef4444');
+          return false;
+        }
+
+        const enemy = createSnake({
+          id: `enemy-${state.enemyCounter}`,
+          name: botName,
+          isPlayer: false,
+          x: bestSpot.x,
+          y: bestSpot.y,
+          dir: bestSpot.dir,
+          length: 4,
+          palette
+        });
+
+        state.enemies.push(enemy);
+        state.allMatchSnakes.push(enemy);
+        showToast(`Spawned enemy: ${botName}`, palette.head);
+        updateHUD();
+        render();
+        return true;
+      }
+
+      function removeOneEnemy() {
+        if (state.enemies.length === 0) {
+          showToast('No active enemy snakes to remove', '#93a4c8');
+          return;
+        }
+        const removed = state.enemies.pop();
+        removed.alive = false;
+        removed.causeOfDeath = 'Recalled';
+        showToast(`Removed ${removed.name}`, '#f59e0b');
+        updateHUD();
+        render();
+      }
+
+      function addRandomObstacles(clusterCount = 2) {
+        const occupied = getOccupiedSet(false);
+        for (const f of state.foods) occupied.add(keyOf(f.x, f.y));
+
+        // Also keep a safety buffer around living snake heads
+        const allSnakes = [state.player, ...state.enemies].filter(s => s && s.alive);
+        for (const s of allSnakes) {
+          const h = s.segments[0];
+          for (let dx = -2; dx <= 2; dx++) {
+            for (let dy = -2; dy <= 2; dy++) {
+              occupied.add(keyOf(h.x + dx, h.y + dy));
+            }
+          }
+        }
+
+        let placed = 0;
+        for (let c = 0; c < clusterCount; c++) {
+          const len = 2 + Math.floor(Math.random() * 4);
+          let x = 2 + Math.floor(Math.random() * (COLS - 4));
+          let y = 2 + Math.floor(Math.random() * (ROWS - 4));
+          const dir = DIR_LIST[Math.floor(Math.random() * DIR_LIST.length)];
+
+          for (let i = 0; i < len; i++) {
+            const nx = x + dir.x * i;
+            const ny = y + dir.y * i;
+            const k = keyOf(nx, ny);
+            if (inBounds(nx, ny) && !occupied.has(k)) {
+              state.obstacles.add(k);
+              occupied.add(k);
+              placed++;
+            }
+          }
+        }
+
+        if (placed > 0) {
+          showToast(`Added ${placed} obstacle tile(s)`, '#f59e0b');
+          updateHUD();
+          render();
+        }
+      }
+
+      function clearObstacles() {
+        const count = state.obstacles.size;
+        state.obstacles.clear();
+        showToast(`Cleared ${count} obstacle(s)`, '#10b981');
+        updateHUD();
+        render();
+      }
+
+      // Autonomous BFS + Flood-Fill Survival AI for Player Snake
+      function computeAutonomousMove(snake) {
+        const head = snake.segments[0];
+        const hazards = getOccupiedSet(true);
+
+        // Treat cells immediately adjacent to enemy heads as caution zones
+        const cautionCells = new Set();
+        for (const enemy of state.enemies) {
+          if (!enemy.alive) continue;
+          const eh = enemy.segments[0];
+          for (const d of DIR_LIST) {
+            cautionCells.add(keyOf(eh.x + d.x, eh.y + d.y));
+          }
+        }
+
+        const foodMap = new Map();
+        for (const f of state.foods) {
+          foodMap.set(keyOf(f.x, f.y), f);
+        }
+
+        // BFS from head to find shortest safe path to food
+        function runBFS(ignoreCaution = false) {
+          const queue = [{ x: head.x, y: head.y, firstDir: null, path: [] }];
+          const visited = new Set([keyOf(head.x, head.y)]);
+
+          while (queue.length > 0) {
+            const curr = queue.shift();
+            const ck = keyOf(curr.x, curr.y);
+
+            if (curr.firstDir && foodMap.has(ck)) {
+              return { dir: curr.firstDir, path: curr.path };
+            }
+
+            for (const d of DIR_LIST) {
+              if (!curr.firstDir && isOpposite(d, snake.dir)) continue;
+              const nx = curr.x + d.x;
+              const ny = curr.y + d.y;
+              if (!inBounds(nx, ny)) continue;
+              const nk = keyOf(nx, ny);
+              if (visited.has(nk) || hazards.has(nk)) continue;
+              if (!ignoreCaution && cautionCells.has(nk)) continue;
+
+              visited.add(nk);
+              queue.push({
+                x: nx,
+                y: ny,
+                firstDir: curr.firstDir || d,
+                path: [...curr.path, { x: nx, y: ny }]
+              });
+            }
+          }
+          return null;
+        }
+
+        // Count reachable cells from (sx, sy) up to maxCap using flood-fill
+        function floodFillCount(sx, sy, maxCap = 140) {
+          const startKey = keyOf(sx, sy);
+          if (!inBounds(sx, sy) || hazards.has(startKey)) return 0;
+          const q = [{ x: sx, y: sy }];
+          const seen = new Set([startKey]);
+          let count = 0;
+
+          while (q.length > 0 && count < maxCap) {
+            const p = q.shift();
+            count++;
+            for (const d of DIR_LIST) {
+              const nx = p.x + d.x;
+              const ny = p.y + d.y;
+              const nk = keyOf(nx, ny);
+              if (inBounds(nx, ny) && !seen.has(nk) && !hazards.has(nk)) {
+                seen.add(nk);
+                q.push({ x: nx, y: ny });
+              }
+            }
+          }
+          return count;
+        }
+
+        const bfsResult = runBFS(false) || runBFS(true);
+        if (bfsResult) {
+          // Verify that taking bfsResult.dir leaves enough open space to not trap ourselves
+          const nextX = head.x + bfsResult.dir.x;
+          const nextY = head.y + bfsResult.dir.y;
+          const space = floodFillCount(nextX, nextY, snake.segments.length + 25);
+          if (space >= Math.min(snake.segments.length, 60)) {
+            state.aiPlannedPath = bfsResult.path;
+            return bfsResult.dir;
+          }
+        }
+
+        // Survival fallback: evaluate all candidate moves by flood-fill open space + tail distance
+        state.aiPlannedPath = [];
+        const tail = snake.segments[snake.segments.length - 1];
+        let bestDir = snake.dir;
+        let bestScore = -Infinity;
+
+        for (const d of DIR_LIST) {
+          if (isOpposite(d, snake.dir)) continue;
+          const nx = head.x + d.x;
+          const ny = head.y + d.y;
+          const nk = keyOf(nx, ny);
+          if (!inBounds(nx, ny) || hazards.has(nk)) continue;
+
+          const space = floodFillCount(nx, ny, 160);
+          const cautionPenalty = cautionCells.has(nk) ? -35 : 0;
+          const distToTail = Math.abs(nx - tail.x) + Math.abs(ny - tail.y);
+          const candidateScore = space * 2 + cautionPenalty - distToTail * 0.25;
+
+          if (candidateScore > bestScore) {
+            bestScore = candidateScore;
+            bestDir = d;
+          }
+        }
+
+        return bestDir;
+      }
+
+      // Enemy Snake Heuristic AI
+      function computeEnemyMove(enemy) {
+        const head = enemy.segments[0];
+        const hazards = getOccupiedSet(true);
+
+        // Quick local flood-fill to avoid small dead-ends
+        function localSpace(sx, sy, cap = 35) {
+          const sk = keyOf(sx, sy);
+          if (!inBounds(sx, sy) || hazards.has(sk)) return 0;
+          const q = [{ x: sx, y: sy }];
+          const seen = new Set([sk]);
+          let count = 0;
+          while (q.length > 0 && count < cap) {
+            const curr = q.shift();
+            count++;
+            for (const d of DIR_LIST) {
+              const nx = curr.x + d.x;
+              const ny = curr.y + d.y;
+              const nk = keyOf(nx, ny);
+              if (inBounds(nx, ny) && !seen.has(nk) && !hazards.has(nk)) {
+                seen.add(nk);
+                q.push({ x: nx, y: ny });
+              }
+            }
+          }
+          return count;
+        }
+
+        let bestDir = enemy.dir;
+        let bestScore = -Infinity;
+
+        for (const d of DIR_LIST) {
+          if (isOpposite(d, enemy.dir)) continue;
+          const nx = head.x + d.x;
+          const ny = head.y + d.y;
+          const nk = keyOf(nx, ny);
+          if (!inBounds(nx, ny) || hazards.has(nk)) continue;
+
+          const space = localSpace(nx, ny, 35);
+
+          // Nearest food attraction
+          let minFoodDist = 999;
+          for (const f of state.foods) {
+            const dist = Math.abs(nx - f.x) + Math.abs(ny - f.y) - (f.bonus ? 3 : 0);
+            if (dist < minFoodDist) minFoodDist = dist;
+          }
+
+          // Slight randomness so multiple enemies take varied paths
+          const jitter = Math.random() * 1.8;
+          const score = space * 3.0 - minFoodDist * 1.4 + jitter;
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestDir = d;
+          }
+        }
+
+        return bestDir;
+      }
+
+      function dropRemainsAsFood(deadSnake) {
+        // Convert every other body segment into a glowing food pellet
+        for (let i = 1; i < deadSnake.segments.length; i += 2) {
+          const seg = deadSnake.segments[i];
+          if (inBounds(seg.x, seg.y) && !state.obstacles.has(keyOf(seg.x, seg.y))) {
+            state.foods.push({
+              x: seg.x,
+              y: seg.y,
+              value: 15,
+              grow: 1,
+              color: deadSnake.palette.head,
+              bonus: true
+            });
+          }
+        }
+      }
+
+      // Main Game Tick (Slither-style simultaneous step & collision resolution)
+      function stepGame() {
+        if (!state.running || state.paused || state.gameOver) return;
+        state.tickCount++;
+
+        const activeSnakes = [state.player, ...state.enemies].filter(s => s && s.alive);
+
+        // 1. Choose next direction for each living snake
+        for (const s of activeSnakes) {
+          if (s.isPlayer) {
+            if (state.autonomous) {
+              state.usedAutonomous = true;
+              s.dir = computeAutonomousMove(s);
+              s.inputQueue = [];
+            } else {
+              state.usedManual = true;
+              state.aiPlannedPath = [];
+              while (s.inputQueue.length > 0) {
+                const candidate = s.inputQueue.shift();
+                if (!isOpposite(candidate, s.dir)) {
+                  s.dir = candidate;
+                  break;
+                }
+              }
+            }
+          } else {
+            s.dir = computeEnemyMove(s);
+          }
+        }
+
+        // 2. Compute next head positions
+        const nextHeads = new Map();
+        for (const s of activeSnakes) {
+          const h = s.segments[0];
+          nextHeads.set(s, { x: h.x + s.dir.x, y: h.y + s.dir.y });
+        }
+
+        // 3. Check food consumption at next head positions
+        const eatenFoodIndices = new Set();
+        for (const s of activeSnakes) {
+          const nh = nextHeads.get(s);
+          const fIdx = state.foods.findIndex((f, idx) => !eatenFoodIndices.has(idx) && f.x === nh.x && f.y === nh.y);
+          if (fIdx !== -1) {
+            const food = state.foods[fIdx];
+            eatenFoodIndices.add(fIdx);
+            s.growPending += food.grow || 1;
+            s.score += food.value;
+            if (s.isPlayer) {
+              state.score += food.value;
+            }
+          }
+        }
+
+        // Remove eaten food and spawn replacements so at least 3 food pellets remain
+        if (eatenFoodIndices.size > 0) {
+          state.foods = state.foods.filter((_, idx) => !eatenFoodIndices.has(idx));
+          for (let guard = 0; state.foods.length < 3 && guard < 10; guard++) {
+            spawnFood(1);
+          }
+        }
+
+        // 4. Advance snake segments (push new head, pop tail unless growing)
+        for (const s of activeSnakes) {
+          const nh = nextHeads.get(s);
+          s.segments.unshift(nh);
+          if (s.growPending > 0) {
+            s.growPending--;
+          } else {
+            s.segments.pop();
+          }
+          if (s.segments.length > s.peakLength) {
+            s.peakLength = s.segments.length;
+          }
+        }
+
+        // 5. Slither-style collision detection
+        const newlyDead = new Set();
+
+        for (const s of activeSnakes) {
+          const nh = s.segments[0];
+          const nk = keyOf(nh.x, nh.y);
+
+          // Wall check
+          if (!inBounds(nh.x, nh.y)) {
+            newlyDead.add(s);
+            s.causeOfDeath = 'Arena Wall';
+            continue;
+          }
+
+          // Obstacle check
+          if (state.obstacles.has(nk)) {
+            newlyDead.add(s);
+            s.causeOfDeath = 'Obstacle Wall';
+            continue;
+          }
+
+          // Self-collision check (segments 1..end)
+          for (let i = 1; i < s.segments.length; i++) {
+            if (s.segments[i].x === nh.x && s.segments[i].y === nh.y) {
+              newlyDead.add(s);
+              s.causeOfDeath = 'Self Collision';
+              break;
+            }
+          }
+          if (newlyDead.has(s)) continue;
+
+          // Other snakes collision check
+          for (const other of activeSnakes) {
+            if (other === s) continue;
+
+            // Head-to-head on same cell
+            const oh = other.segments[0];
+            if (oh.x === nh.x && oh.y === nh.y) {
+              if (s.segments.length < other.segments.length) {
+                newlyDead.add(s);
+                s.causeOfDeath = `Head-to-Head vs ${other.name}`;
+                other.kills++;
+                other.score += 50;
+                if (other.isPlayer) {
+                  state.kills++;
+                  state.score += 50;
+                }
+                break;
+              } else if (s.segments.length === other.segments.length) {
+                newlyDead.add(s);
+                s.causeOfDeath = `Head-to-Head draw with ${other.name}`;
+                break;
+              }
+              continue;
+            }
+
+            // Head hits another snake's body (segments 1..end)
+            let hitBody = false;
+            for (let i = 1; i < other.segments.length; i++) {
+              if (other.segments[i].x === nh.x && other.segments[i].y === nh.y) {
+                hitBody = true;
+                break;
+              }
+            }
+            if (hitBody) {
+              newlyDead.add(s);
+              s.causeOfDeath = `Eliminated by ${other.name}`;
+              other.kills++;
+              other.score += 50;
+              if (other.isPlayer) {
+                state.kills++;
+                state.score += 50;
+                showToast(`Eliminated ${s.name}! (+50 pts)`, '#10b981');
+              }
+              break;
+            }
+          }
+        }
+
+        // 6. Process deaths
+        for (const dead of newlyDead) {
+          dead.alive = false;
+          if (!dead.isPlayer) {
+            dropRemainsAsFood(dead);
+            showToast(`${dead.name} crashed (${dead.causeOfDeath})`, dead.palette.head);
+          }
+        }
+
+        state.enemies = state.enemies.filter(e => e.alive);
+
+        if (!state.player.alive) {
+          handleGameOver();
+        }
+
+        updateHUD();
+        render();
+      }
+
+      // Rendering Engine
+      function render() {
+        ctx.fillStyle = '#070b13';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Subtle grid lines
+        ctx.strokeStyle = 'rgba(42, 55, 89, 0.24)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = 0; x <= COLS; x++) {
+          ctx.moveTo(x * CELL, 0);
+          ctx.lineTo(x * CELL, canvas.height);
+        }
+        for (let y = 0; y <= ROWS; y++) {
+          ctx.moveTo(0, y * CELL);
+          ctx.lineTo(canvas.width, y * CELL);
+        }
+        ctx.stroke();
+
+        // Draw AI planned path in Autonomous mode
+        if (state.autonomous && state.aiPlannedPath.length > 0 && state.player && state.player.alive) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(6, 182, 212, 0.45)';
+          ctx.lineWidth = 3;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          const ph = state.player.segments[0];
+          ctx.moveTo(ph.x * CELL + CELL / 2, ph.y * CELL + CELL / 2);
+          for (const pt of state.aiPlannedPath) {
+            ctx.lineTo(pt.x * CELL + CELL / 2, pt.y * CELL + CELL / 2);
+          }
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Draw Obstacles
+        for (const k of state.obstacles) {
+          const { x, y } = parseKey(k);
+          const px = x * CELL;
+          const py = y * CELL;
+          ctx.fillStyle = '#334155';
+          ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
+          ctx.strokeStyle = '#64748b';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(px + 2.5, py + 2.5, CELL - 5, CELL - 5);
+        }
+
+        // Draw Foods
+        for (const f of state.foods) {
+          const cx = f.x * CELL + CELL / 2;
+          const cy = f.y * CELL + CELL / 2;
+          const r = f.bonus ? CELL * 0.38 : CELL * 0.31;
+
+          ctx.save();
+          ctx.shadowColor = f.color;
+          ctx.shadowBlur = f.bonus ? 12 : 8;
+          ctx.fillStyle = f.color;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Draw Snakes (enemies first, player on top)
+        const snakesToDraw = [...state.enemies, state.player].filter(s => s && (s.alive || (s.isPlayer && inBounds(s.segments[0].x, s.segments[0].y))));
+        for (const s of snakesToDraw) {
+          drawSnake(s);
+        }
+
+        // Paused overlay
+        if (state.paused && !state.gameOver) {
+          ctx.fillStyle = 'rgba(7, 11, 19, 0.65)';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('PAUSED — Press SPACE or P to Resume', canvas.width / 2, canvas.height / 2);
+          ctx.font = '15px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillStyle = '#94a3b8';
+          ctx.fillText('You can still click or drag on the grid to edit obstacles', canvas.width / 2, canvas.height / 2 + 30);
+        }
+      }
+
+      function drawSnake(snake) {
+        const len = snake.segments.length;
+        for (let i = len - 1; i >= 0; i--) {
+          const seg = snake.segments[i];
+          const px = seg.x * CELL;
+          const py = seg.y * CELL;
+          const isHead = i === 0;
+
+          ctx.save();
+          if (isHead) {
+            ctx.shadowColor = snake.palette.glow;
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = snake.palette.head;
+          } else {
+            ctx.fillStyle = snake.palette.body;
+          }
+
+          const pad = isHead ? 1.5 : 2.5;
+          ctx.beginPath();
+          ctx.roundRect(px + pad, py + pad, CELL - pad * 2, CELL - pad * 2, isHead ? 6 : 4);
+          ctx.fill();
+
+          // Eyes on head
+          if (isHead) {
+            ctx.fillStyle = '#06101e';
+            const cx = px + CELL / 2;
+            const cy = py + CELL / 2;
+            const eyeOffset = 4.5;
+            const fwdOffset = 3.5;
+            let e1x, e1y, e2x, e2y;
+            if (snake.dir.x !== 0) {
+              e1x = e2x = cx + snake.dir.x * fwdOffset;
+              e1y = cy - eyeOffset;
+              e2y = cy + eyeOffset;
+            } else {
+              e1y = e2y = cy + snake.dir.y * fwdOffset;
+              e1x = cx - eyeOffset;
+              e2x = cx + eyeOffset;
+            }
+            ctx.beginPath();
+            ctx.arc(e1x, e1y, 2.1, 0, Math.PI * 2);
+            ctx.arc(e2x, e2y, 2.1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
+      function getModeLabel() {
+        if (state.usedAutonomous && state.usedManual) return 'Assisted';
+        if (state.usedAutonomous || state.autonomous) return 'Autonomous';
+        return 'Manual';
+      }
+
+      function updateHUD() {
+        statScore.textContent = state.score;
+        statLength.textContent = state.player ? state.player.segments.length : 0;
+        statEnemies.textContent = state.enemies.length;
+        statObstacles.textContent = state.obstacles.size;
+        statSpeed.textContent = `${state.speedMultiplier.toFixed(1)}x`;
+        killCountBadge.textContent = `Kills: ${state.kills}`;
+
+        if (state.autonomous) {
+          modeBadge.textContent = 'Mode: Autonomous AI';
+          modeBadge.className = 'mode-badge auto';
+          aiStateBanner.textContent = 'Driver: BFS + Flood-Fill Auto-Pilot';
+        } else {
+          modeBadge.textContent = 'Mode: Manual';
+          modeBadge.className = 'mode-badge manual';
+          aiStateBanner.textContent = 'Driver: Manual (WASD / Arrows)';
+        }
+
+        if (state.waitingToStart) {
+          pauseBtnText.textContent = 'Start';
+          startOverlay.classList.remove('hidden');
+        } else {
+          pauseBtnText.textContent = state.paused ? 'Resume' : 'Pause';
+          startOverlay.classList.add('hidden');
+        }
+
+        // Update Live Roster
+        liveRoster.innerHTML = '';
+        const allActive = [state.player, ...state.enemies].filter(s => s && s.alive);
+        allActive.sort((a, b) => b.segments.length - a.segments.length);
+        for (const s of allActive) {
+          const row = document.createElement('div');
+          row.className = 'roster-item';
+          row.innerHTML = `
+            <span class="roster-name">
+              <span class="swatch" style="background:${s.palette.head}"></span>
+              <span>${s.name}${s.isPlayer ? (state.autonomous ? ' (AI)' : ' (You)') : ''}</span>
+            </span>
+            <span style="color: var(--text-muted); font-variant-numeric: tabular-nums;">
+              Len ${s.segments.length} &bull; ${s.score} pts
+            </span>
+          `;
+          liveRoster.appendChild(row);
+        }
+      }
+
+      // Leaderboard Persistence & Modal Rendering
+      function loadHighScores() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function saveHighScores(list) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0, 15)));
+        } catch (e) {
+          // ignore storage quota errors
+        }
+      }
+
+      function recordCurrentScore() {
+        if (state.scoreSavedThisMatch) return;
+        const name = (playerNameInput.value || 'Player 1').trim().slice(0, 18) || 'Player 1';
+        const scores = loadHighScores();
+        scores.push({
+          name,
+          score: state.score,
+          length: state.player ? state.player.peakLength : 0,
+          kills: state.kills,
+          mode: getModeLabel(),
+          date: new Date().toLocaleDateString()
+        });
+        scores.sort((a, b) => b.score - a.score || b.length - a.length);
+        saveHighScores(scores);
+        state.scoreSavedThisMatch = true;
+        btnSaveScore.textContent = 'Saved!';
+        btnSaveScore.disabled = true;
+        populateLeaderboardTables();
+      }
+
+      function populateLeaderboardTables() {
+        // 1. Match Standings
+        matchStandingsBody.innerHTML = '';
+        const standings = [...state.allMatchSnakes].sort(
+          (a, b) => b.peakLength - a.peakLength || b.score - a.score
+        );
+        standings.forEach((s, idx) => {
+          const tr = document.createElement('tr');
+          const statusText = s.alive ? 'Alive' : (s.causeOfDeath || 'Crashed');
+          tr.innerHTML = `
+            <td>${idx + 1}</td>
+            <td>
+              <span class="swatch" style="background:${s.palette.head}; margin-right:6px;"></span>
+              <strong>${s.name}</strong>
+            </td>
+            <td>${s.isPlayer ? `Player (${getModeLabel()})` : 'Enemy AI'}</td>
+            <td>${s.peakLength}</td>
+            <td>${s.score} pts (${s.kills} kills)</td>
+            <td style="color:${s.alive ? '#34d399' : '#f87171'}">${statusText}</td>
+          `;
+          matchStandingsBody.appendChild(tr);
+        });
+
+        // 2. Persistent All-Time Leaderboard
+        highScoresBody.innerHTML = '';
+        const highScores = loadHighScores();
+        if (highScores.length === 0) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td colspan="7" style="text-align:center; color: var(--text-muted); padding: 14px;">No high scores saved yet. Finish a game or click "Save High Score"!</td>`;
+          highScoresBody.appendChild(tr);
+        } else {
+          highScores.slice(0, 10).forEach((entry, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>#${idx + 1}</td>
+              <td><strong>${esc(entry.name)}</strong></td>
+              <td style="color:#34d399; font-weight:700;">${esc(entry.score)}</td>
+              <td>${esc(entry.length)}</td>
+              <td>${esc(entry.kills)}</td>
+              <td>${esc(entry.mode)}</td>
+              <td style="color: var(--text-muted);">${esc(entry.date)}</td>
+            `;
+            highScoresBody.appendChild(tr);
+          });
+        }
+      }
+
+      function openLeaderboardModal(isGameOver = false) {
+        if (isGameOver) {
+          modalTitle.textContent = `Game Over — ${state.player.causeOfDeath || 'Crashed'}`;
+          modalSubtitle.textContent = `Final Score: ${state.score} pts | Peak Length: ${state.player.peakLength} | Enemies Eliminated: ${state.kills}`;
+        } else {
+          modalTitle.textContent = 'Arena Leaderboard & Standings';
+          modalSubtitle.textContent = `Current Score: ${state.score} pts | Active Mode: ${getModeLabel()}`;
+        }
+        saveScoreSection.style.display = isGameOver ? 'flex' : 'none';
+        if (!isGameOver && state.running && !state.paused) {
+          state.paused = true;
+          pausedByModal = true;
+          updateHUD();
+          render();
+        }
+        populateLeaderboardTables();
+        leaderboardModal.classList.add('open');
+      }
+
+      let pausedByModal = false;
+
+      function closeLeaderboardModal() {
+        leaderboardModal.classList.remove('open');
+        if (pausedByModal) {
+          pausedByModal = false;
+          state.paused = false;
+          updateHUD();
+          render();
+        }
+      }
+
+      function handleGameOver() {
+        state.gameOver = true;
+        state.running = false;
+        showToast(`Game Over: ${state.player.causeOfDeath}`, '#ef4444');
+        openLeaderboardModal(true);
+      }
+
+      function startGame(autoMode = null) {
+        if (!state.waitingToStart || state.gameOver) return;
+        if (typeof autoMode === 'boolean') {
+          state.autonomous = autoMode;
+          state.usedAutonomous = autoMode;
+          state.usedManual = !autoMode;
+        }
+        state.waitingToStart = false;
+        state.running = true;
+        state.paused = false;
+        showToast(state.autonomous ? 'Game Started (Autonomous AI)' : 'Game Started (Manual Mode)', '#10b981');
+        updateHUD();
+        render();
+      }
+
+      function toggleAutonomousMode() {
+        state.autonomous = !state.autonomous;
+        if (state.autonomous) {
+          state.usedAutonomous = true;
+          showToast('Autonomous AI Pilot Enabled', '#06b6d4');
+        } else {
+          state.aiPlannedPath = [];
+          showToast('Manual Steering Enabled', '#10b981');
+        }
+        updateHUD();
+        render();
+      }
+
+      function togglePause() {
+        if (state.gameOver) return;
+        if (state.waitingToStart) {
+          startGame();
+          return;
+        }
+        state.paused = !state.paused;
+        showToast(state.paused ? 'Game Paused' : 'Game Resumed', '#93a4c8');
+        updateHUD();
+        render();
+      }
+
+      function adjustSpeed(delta) {
+        state.speedMultiplier = Math.max(0.5, Math.min(3.0, +(state.speedMultiplier + delta).toFixed(2)));
+        restartLoopTimer();
+        updateHUD();
+      }
+
+      // Mouse Click & Drag to Place / Remove Obstacles on Canvas
+      let isDraggingMouse = false;
+      let dragObstacleMode = 'add'; // 'add' or 'remove'
+
+      function getCanvasCellFromEvent(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const cx = Math.floor(((evt.clientX - rect.left) * scaleX) / CELL);
+        const cy = Math.floor(((evt.clientY - rect.top) * scaleY) / CELL);
+        return { x: cx, y: cy };
+      }
+
+      function isCellOccupiedBySnakeOrFood(x, y) {
+        const allSnakes = [state.player, ...state.enemies].filter(s => s && s.alive);
+        for (const s of allSnakes) {
+          for (const seg of s.segments) {
+            if (seg.x === x && seg.y === y) return true;
+          }
+        }
+        for (const f of state.foods) {
+          if (f.x === x && f.y === y) return true;
+        }
+        return false;
+      }
+
+      function applyObstacleAtCell(x, y, mode) {
+        if (!inBounds(x, y)) return;
+        const k = keyOf(x, y);
+        if (mode === 'add') {
+          if (!isCellOccupiedBySnakeOrFood(x, y)) {
+            state.obstacles.add(k);
+          }
+        } else {
+          state.obstacles.delete(k);
+        }
+        updateHUD();
+        render();
+      }
+
+      canvas.addEventListener('mousedown', (evt) => {
+        if (evt.button !== 0) return;
+        const { x, y } = getCanvasCellFromEvent(evt);
+        if (!inBounds(x, y)) return;
+        isDraggingMouse = true;
+        const k = keyOf(x, y);
+        dragObstacleMode = state.obstacles.has(k) ? 'remove' : 'add';
+        applyObstacleAtCell(x, y, dragObstacleMode);
+      });
+
+      canvas.addEventListener('mousemove', (evt) => {
+        if (!isDraggingMouse) return;
+        const { x, y } = getCanvasCellFromEvent(evt);
+        applyObstacleAtCell(x, y, dragObstacleMode);
+      });
+
+      window.addEventListener('mouseup', () => {
+        isDraggingMouse = false;
+      });
+
+      // Keyboard Shortcuts & Steering
+      window.addEventListener('keydown', (evt) => {
+        // Ignore shortcuts when typing name in input field
+        if (document.activeElement === playerNameInput) {
+          if (evt.key === 'Enter') {
+            recordCurrentScore();
+          } else if (evt.key === 'Escape') {
+            closeLeaderboardModal();
+          }
+          return;
+        }
+
+        if (evt.ctrlKey || evt.metaKey || evt.altKey) return;
+        const key = evt.key.toLowerCase();
+
+        // Modal open: only allow toggle/close/restart
+        if (leaderboardModal.classList.contains('open') && !['l', 'escape', 'r'].includes(key)) return;
+        if (evt.repeat && !['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(key)) return;
+
+        // Direction keys
+        let desiredDir = null;
+        if (evt.key === 'ArrowUp' || key === 'w') desiredDir = DIRS.UP;
+        else if (evt.key === 'ArrowDown' || key === 's') desiredDir = DIRS.DOWN;
+        else if (evt.key === 'ArrowLeft' || key === 'a') {
+          // If in manual mode and not waiting for 'A' to start Auto-Pilot, 'a' steers left.
+          if (!state.autonomous && !state.waitingToStart) desiredDir = DIRS.LEFT;
+        } else if (evt.key === 'ArrowRight' || key === 'd') desiredDir = DIRS.RIGHT;
+
+        if (desiredDir && !state.autonomous && state.player && state.player.alive) {
+          evt.preventDefault();
+          if (state.waitingToStart) {
+            startGame(false);
+          }
+          const q = state.player.inputQueue;
+          const refDir = q.length > 0 ? q[q.length - 1] : state.player.dir;
+          if (!isOpposite(desiredDir, refDir) && desiredDir !== refDir && q.length < 2) {
+            q.push(desiredDir);
+          }
+          return;
+        }
+
+        if (state.waitingToStart && (evt.key === 'Enter' || evt.key === 'ArrowLeft')) {
+          evt.preventDefault();
+          startGame(false);
+          return;
+        }
+
+        if (state.waitingToStart && key === 'a') {
+          evt.preventDefault();
+          startGame(true);
+          return;
+        }
+
+        // Action Shortcuts
+        if (key === 'm' || (key === 'a' && state.autonomous)) {
+          evt.preventDefault();
+          toggleAutonomousMode();
+        } else if (key === 'e') {
+          evt.preventDefault();
+          spawnEnemySnake();
+        } else if (key === 'q') {
+          evt.preventDefault();
+          removeOneEnemy();
+        } else if (key === 'o') {
+          evt.preventDefault();
+          addRandomObstacles(2);
+        } else if (key === 'x') {
+          evt.preventDefault();
+          clearObstacles();
+        } else if (key === 'p' || evt.code === 'Space') {
+          evt.preventDefault();
+          togglePause();
+        } else if (key === 'r') {
+          evt.preventDefault();
+          initMatch(true);
+        } else if (key === 'l') {
+          evt.preventDefault();
+          if (leaderboardModal.classList.contains('open')) {
+            closeLeaderboardModal();
+          } else {
+            openLeaderboardModal(state.gameOver);
+          }
+        } else if (evt.key === 'Escape') {
+          closeLeaderboardModal();
+        } else if (evt.key === '[') {
+          adjustSpeed(-0.25);
+        } else if (evt.key === ']') {
+          adjustSpeed(0.25);
+        }
+      });
+
+      // UI Button Bindings
+      btnStartManual.addEventListener('click', () => startGame(false));
+      btnStartAuto.addEventListener('click', () => startGame(true));
+      modeBadge.addEventListener('click', toggleAutonomousMode);
+      document.getElementById('btnToggleMode').addEventListener('click', toggleAutonomousMode);
+      document.getElementById('btnAddEnemy').addEventListener('click', () => spawnEnemySnake());
+      document.getElementById('btnAddObstacle').addEventListener('click', () => addRandomObstacles(2));
+      document.getElementById('btnClearObstacles').addEventListener('click', clearObstacles);
+      document.getElementById('btnPause').addEventListener('click', togglePause);
+      document.getElementById('btnRestart').addEventListener('click', () => initMatch(true));
+      document.getElementById('btnSlower').addEventListener('click', () => adjustSpeed(-0.25));
+      document.getElementById('btnFaster').addEventListener('click', () => adjustSpeed(0.25));
+      document.getElementById('btnLeaderboard').addEventListener('click', () => openLeaderboardModal(state.gameOver));
+      document.getElementById('btnCloseModal').addEventListener('click', closeLeaderboardModal);
+      document.getElementById('btnPlayAgain').addEventListener('click', () => initMatch(true));
+      btnSaveScore.addEventListener('click', recordCurrentScore);
+
+      document.getElementById('btnClearStorage').addEventListener('click', () => {
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+        populateLeaderboardTables();
+        showToast('Cleared saved leaderboard history', '#f59e0b');
+      });
+
+      // Loop Management & Initialization
+      let loopTimer = null;
+
+      function restartLoopTimer() {
+        if (loopTimer) clearInterval(loopTimer);
+        const interval = Math.max(30, Math.round(state.baseTickMs / state.speedMultiplier));
+        loopTimer = setInterval(stepGame, interval);
+      }
+
+      function initMatch(autoStart = false) {
+        const keepAuto = state.autonomous;
+        const keepSpeed = state.speedMultiplier;
+
+        closeLeaderboardModal();
+
+        const playerSnake = createSnake({
+          id: 'player',
+          name: 'Player 1',
+          isPlayer: true,
+          x: 10,
+          y: Math.floor(ROWS / 2),
+          dir: DIRS.RIGHT,
+          length: 4,
+          palette: {
+            name: 'Player-Emerald',
+            head: '#34d399',
+            body: '#059669',
+            glow: 'rgba(16, 185, 129, 0.55)'
+          }
+        });
+
+        state = {
+          running: autoStart,
+          waitingToStart: !autoStart,
+          paused: false,
+          gameOver: false,
+          autonomous: keepAuto,
+          usedAutonomous: keepAuto,
+          usedManual: !keepAuto,
+          score: 0,
+          kills: 0,
+          tickCount: 0,
+          speedMultiplier: keepSpeed,
+          baseTickMs: 105,
+          obstacles: new Set(),
+          foods: [],
+          player: playerSnake,
+          enemies: [],
+          allMatchSnakes: [playerSnake],
+          enemyCounter: 0,
+          scoreSavedThisMatch: false,
+          aiPlannedPath: []
+        };
+
+        btnSaveScore.textContent = 'Save High Score';
+        btnSaveScore.disabled = false;
+
+        // Spawn initial food, 1 initial enemy snake, and a few starter obstacles
+        spawnFood(4);
+        addRandomObstacles(2);
+        spawnEnemySnake();
+
+        restartLoopTimer();
+        updateHUD();
+        render();
+      }
+
+      initMatch(false);
+    })();
+  </script>
+</body>
+</html>
